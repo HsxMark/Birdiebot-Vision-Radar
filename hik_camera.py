@@ -21,21 +21,29 @@ global img_test
 def image_control(data, stFrameInfo):
     image = None
     if stFrameInfo.enPixelType == 17301505:
+        # Mono8 格式：直接重塑为二维灰度图像
         image = data.reshape((stFrameInfo.nHeight, stFrameInfo.nWidth))
-        # image_show(image=image, name=stFrameInfo.nHeight)
     elif stFrameInfo.enPixelType == 17301513:
-        data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth, -1)
+        # Bayer RG8 → RGB
+        data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth)
         image = cv2.cvtColor(data, cv2.COLOR_BAYER_RG2RGB)
-        # image_show(image=image, name=stFrameInfo.nHeight)
+    elif stFrameInfo.enPixelType == 17301514:  # 新增 Bayer GB8 分支
+        # Bayer GB8 → RGB
+        data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth)
+        image = cv2.cvtColor(data, cv2.COLOR_BAYER_GB2RGB)
     elif stFrameInfo.enPixelType == 35127316:
+        # RGB 转 BGR（OpenCV 默认使用 BGR）
         data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth, -1)
         image = cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
-        # image_show(image=image, name=stFrameInfo.nHeight)
     elif stFrameInfo.enPixelType == 34603039:
+        # YUV422 → BGR
         data = data.reshape(stFrameInfo.nHeight, stFrameInfo.nWidth, -1)
         image = cv2.cvtColor(data, cv2.COLOR_YUV2BGR_Y422)
-        # image_show(image=image, name=stFrameInfo.nHeight)
+    else:
+        # 打印未知格式以便调试
+        print(f"Unsupported PixelType: {stFrameInfo.enPixelType}")
     return image
+
 
 
 def enum_devices(device=0, device_way=False):

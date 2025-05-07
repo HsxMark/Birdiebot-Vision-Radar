@@ -1,12 +1,12 @@
 global:
   state: 'B'  # 队伍颜色 R/B
-  camera_mode: 'test'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
+  camera_mode: 'hik'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
   use_serial: True  # 串口启用开关  保证了无串口时能正常调试，虽然没什么影响（有try）
   save_img: False  # 是否保存图像
   map_size: [2800, 1500]  # 战场地图尺寸
 
 serial: # 串口
-  port: 'COM12'
+  port: 'dev/ttyUSB0'
   baudrate: 115200
   timeout: 1
 
@@ -34,7 +34,7 @@ paths:
 
 camera_params:
   exposure_time: 16000.0 # 曝光时间
-  gain: 17.9 # 增益值
+  gain: 16 # 增益值
 
 kalman:
   process_noise: 1e-5
