@@ -96,7 +96,7 @@ trtexec.exe --onnx=models/armor.onnx --saveEngine=models/armor.engine --fp16
 ![运行图例](images/image3.JPG)
 5. 在云台手端，切换飞镖锁定目标触发双倍易伤
 6. 如果运行帧率太低，1fps左右，考虑是torch或者onnx没有安装GPU版本，如果不行，请转换为trt模型加速推理
-
+7. 相机内录在config中save_img打开， 保存目录在main.py 950行左右可以修改。（imwrite不会创建文件夹，得自己创建）
 
 #### 文件目录结构
 
