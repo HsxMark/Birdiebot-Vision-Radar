@@ -139,6 +139,7 @@ mapping_table = {
     "B7": 107
 }
 
+send_map={}
 # 盲区预测点位
 guess_table = {}
 for robot, points in config['blind_zone']['points'].items():
@@ -471,6 +472,7 @@ def ser_send():
     seq = 0
     global chances_flag
     global guess_value
+    global send_map
     # 单点预测时间
     guess_time = {
         'B1': 0,
@@ -580,17 +582,19 @@ def ser_send():
         try:
             all_filter_data = filter.get_all_data()
             if state == 'R':
-                if not guess_list.get('B1'):
+                if guess_list.get('B1'):
+                    send_map['B1'] = send_point_guess('B1', guess_time_limit)
+                # 未识别到英雄，进行盲区预测
+                else:
                     if all_filter_data.get('B1', False):
                         send_map['B1'] = send_point_B('B1', all_filter_data)
-                else:
-                    send_map['B1'] = (0, 0)
 
-                if not guess_list.get('B2'):
+                if guess_list.get('B2'):
+                    send_map['B2'] = send_point_guess('B2', guess_time_limit)
+                # 未识别到工程，进行盲区预测
+                else:
                     if all_filter_data.get('B2', False):
                         send_map['B2'] = send_point_B('B2', all_filter_data)
-                else:
-                    send_map['B2'] = (0, 0)
 
                 # 步兵3号
                 if not guess_list.get('B3'):
@@ -621,17 +625,19 @@ def ser_send():
                         send_map['B7'] = send_point_B('B7', all_filter_data)
 
             if state == 'B':
-                if not guess_list.get('R1'):
+                if guess_list.get('R1'):
+                    send_map['R1'] = send_point_guess('R1', guess_time_limit)
+                # 未识别到英雄，进行盲区预测
+                else:
                     if all_filter_data.get('R1', False):
-                        send_map['R1'] = send_point_R('R1', all_filter_data)
-                else:
-                    send_map['R1'] = (0, 0)
+                        send_map['R1'] = send_point_B('R1', all_filter_data)
 
-                if not guess_list.get('R2'):
-                    if all_filter_data.get('R2', False):
-                        send_map['R2'] = send_point_R('R2', all_filter_data)
+                if guess_list.get('R2'):
+                    send_map['R2'] = send_point_guess('R2', guess_time_limit)
+                # 未识别到工程，进行盲区预测
                 else:
-                    send_map['R2'] = (0, 0)
+                    if all_filter_data.get('R2', False):
+                        send_map['R2'] = send_point_B('R2', all_filter_data)
 
                 # 步兵3号
                 if not guess_list.get('R3'):
@@ -809,7 +815,7 @@ else:
 camera_image = None
 
 if camera_mode == 'test':
-    camera_image = cv2.imread('images/test_image.jpg')
+    camera_image = cv2.imread(config['paths']['test_img'])
 elif camera_mode == 'hik':
     # 海康相机图像获取线程
     thread_camera = threading.Thread(target=hik_camera_get, daemon=True)
@@ -904,30 +910,52 @@ while True:
 
     # 获取所有识别到的机器人坐标
     all_filter_data = filter.get_all_data()
-    # print(all_filter_data_name)
-    if all_filter_data != {}:
-        for name, xyxy in all_filter_data.items():
-            # print(name, xyxy)
-            if xyxy is not None:
-                if name[0] == "R":
-                    color_m = (0, 0, 255)
-                else:
-                    color_m = (255, 0, 0)
-                if state == 'R':
-                    filtered_xyz = (2800 - xyxy[1], xyxy[0])  # 缩放坐标到地图图像
-                else:
-                    filtered_xyz = (xyxy[1], 1500 - xyxy[0])  # 缩放坐标到地图图像
-                # 只绘制敌方阵营的机器人（这里不会绘制盲区预测的机器人）
-                if name[0] != state:
-                    cv2.circle(map, (int(filtered_xyz[0]), int(filtered_xyz[1])), 15, color_m, -1)  # 绘制圆
-                    cv2.putText(map, str(name),
-                                (int(filtered_xyz[0]) - 5, int(filtered_xyz[1]) + 5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 2.5, (255, 255, 255), 5)
-                    ser_x = int(filtered_xyz[0]) * 10 / 10
-                    ser_y = int(1500 - filtered_xyz[1]) * 10 / 10
-                    cv2.putText(map, "(" + str(ser_x) + "," + str(ser_y) + ")",
-                                (int(filtered_xyz[0]) - 100, int(filtered_xyz[1]) + 60),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+    if not ser1:  # 检查串口是否可用
+        # print(all_filter_data_name)
+        if all_filter_data != {}:
+            for name, xyxy in all_filter_data.items():
+                # print(name, xyxy)
+                if xyxy is not None:
+                    if name[0] == "R":
+                        color_m = (0, 0, 255)
+                    else:
+                        color_m = (255, 0, 0)
+                    if state == 'R':
+                        filtered_xyz = (2800 - xyxy[1], xyxy[0])  # 缩放坐标到地图图像
+                    else:
+                        filtered_xyz = (xyxy[1], 1500 - xyxy[0])  # 缩放坐标到地图图像
+                    # 只绘制敌方阵营的机器人（这里不会绘制盲区预测的机器人）
+                    if name[0] != state:
+                        cv2.circle(map, (int(filtered_xyz[0]), int(filtered_xyz[1])), 15, color_m, -1)  # 绘制圆
+                        cv2.putText(map, str(name),
+                                    (int(filtered_xyz[0]) - 5, int(filtered_xyz[1]) + 5),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 2.5, (255, 255, 255), 5)
+                        ser_x = int(filtered_xyz[0]) * 10 / 10
+                        ser_y = int(1500 - filtered_xyz[1]) * 10 / 10
+                        cv2.putText(map, "(" + str(ser_x) + "," + str(ser_y) + ")",
+                                    (int(filtered_xyz[0]) - 100, int(filtered_xyz[1]) + 60),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+    else:
+        for name in send_map:
+            if name[0] != state:  # 敌方阵营
+                x, y = send_map[name]
+                if x == 0 and y == 0:
+                    continue  # 跳过无效坐标
+                # 转换为地图坐标系
+                x_map = x
+                y_map = 1500 - y
+                # 设置颜色
+                color_m = (0, 0, 255) if name[0] == 'R' else (255, 0, 0)
+                # 绘制圆点
+                cv2.circle(map, (int(x_map), int(y_map)), 15, color_m, -1)
+                # 绘制机器人名称
+                cv2.putText(map, str(name),
+                            (int(x_map) - 5, int(y_map) + 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2.5, (255, 255, 255), 5)
+                # 绘制坐标文本
+                cv2.putText(map, f"({x_map}, {y_map})",
+                            (int(x_map) - 100, int(y_map) + 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
 
     te = time.time()
     t_p = te - ts
