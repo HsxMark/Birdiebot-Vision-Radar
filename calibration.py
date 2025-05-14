@@ -107,7 +107,7 @@ def hik_camera_get():
 
     # 设置设备的一些参数
     set_Value(cam, param_type="float_value", node_name="ExposureTime", node_value=16000)  # 曝光时间
-    set_Value(cam, param_type="float_value", node_name="Gain", node_value=17.9)  # 增益值
+    set_Value(cam, param_type="float_value", node_name="Gain", node_value=16)  # 增益值
     # 开启设备取流
     start_grab_and_get_data_size(cam)
     # 主动取流方式抓取图像
@@ -149,6 +149,9 @@ color = [(255, 255, 255), (0, 255, 0), (0, 0, 255)]
 class MyUI(QWidget):
     def __init__(self):
         super().__init__()
+        self.ramp_image_points = [(0,0)]*4 # 图像坐标
+        self.ramp_map_points = [(0,0)]*4 # 地图坐标
+        self.is_ramp_calibration = False
         self.capturing = True
         self.initUI()
 
@@ -187,10 +190,18 @@ class MyUI(QWidget):
         self.button3 = QPushButton('加载坐标', self)
         self.button3.setFixedSize(100, 30)
         self.button3.clicked.connect(self.button3_clicked)
-
-        self.button4 = QPushButton('保存计算', self)
-        self.button4.setFixedSize(100, 30)
+        
+        self.button4 = QPushButton('飞坡标定',self)
+        self.button4.setFixedSize(100,30)
         self.button4.clicked.connect(self.button4_clicked)
+
+        self.button5 = QPushButton('保存计算', self)
+        self.button5.setFixedSize(100, 30)
+        self.button5.clicked.connect(self.button5_clicked)
+        
+        self.button6 = QPushButton('退出标定', self)
+        self.button6.setFixedSize(100, 30)
+        self.button6.clicked.connect(self.button6_clicked)
         self.height = 0
         self.T = []
         if self.state == 'R':
@@ -225,12 +236,16 @@ class MyUI(QWidget):
         self.set_button_style(self.button2)
         self.set_button_style(self.button3)
         self.set_button_style(self.button4)
+        self.set_button_style(self.button5)
+        self.set_button_style(self.button6)
 
         grid_layout = QGridLayout()
         grid_layout.addWidget(self.button1, 0, 0)
         grid_layout.addWidget(self.button2, 0, 1)
         grid_layout.addWidget(self.button3, 1, 0)
         grid_layout.addWidget(self.button4, 1, 1)
+        grid_layout.addWidget(self.button5, 2, 0)
+        grid_layout.addWidget(self.button6, 2, 1)
 
         buttons_and_text_widget = QWidget()
 
@@ -278,19 +293,31 @@ class MyUI(QWidget):
             self.update_images()
 
     def left_top_clicked(self, event):
-        # 图像点击事件
+    # 图像点击事件
         if not self.capturing:
             x = int(event.pos().x() * self.left_scale_x)
             y = int(event.pos().y() * self.left_scale_y)
 
-            self.image_points[self.height][self.image_count % 4] = (x, y)
+            if self.is_ramp_calibration:  # 飞坡标定模式
+                index = self.image_count % 4
+                self.ramp_image_points[index] = (x, y)
+                # 使用紫色标记飞坡标定点
+                cv2.circle(self.left_image, (int(x / self.left_scale_x), int(y / self.left_scale_y)), 
+                      4, (255, 0, 255), -1)
+                cv2.putText(self.left_image, str(self.image_count % 4),
+                       (int(x / self.left_scale_x), int(y / self.left_scale_y)),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 3)
+                self.image_count += 1
+            else:  # 原有标定模式
+                self.image_points[self.height][self.image_count % 4] = (x, y)
+                # 保持原有颜色
+                cv2.circle(self.left_image, (int(x / self.left_scale_x), int(y / self.left_scale_y)), 
+                      4, color[self.height], -1)
+                cv2.putText(self.left_image, str(self.image_count % 4),
+                       (int(x / self.left_scale_x), int(y / self.left_scale_y)),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, color[self.height], 3)
+                self.image_count += 1
 
-            cv2.circle(self.left_image, (int(x / self.left_scale_x), int(y / self.left_scale_y)), 4, color[self.height],
-                       -1)
-            cv2.putText(self.left_image, str(self.image_count % 4),
-                        (int(x / self.left_scale_x), int(y / self.left_scale_y)), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        color[self.height], 3)
-            self.image_count += 1
             self.update_images()
             self.append_text(f'图像真实点击坐标：({x}, {y})')
 
@@ -299,18 +326,30 @@ class MyUI(QWidget):
         if not self.capturing:
             x = int(event.pos().x() * self.right_scale_x)
             y = int(event.pos().y() * self.right_scale_y)
-            self.map_points[self.height][self.map_count % 4] = (x, y)
 
-            cv2.circle(self.right_image, (int(x / self.right_scale_x), int(y / self.right_scale_y)), 4,
-                       color[self.height],
-                       -1)
-            cv2.putText(self.right_image, str(self.map_count % 4),
-                        (int(x / self.right_scale_x), int(y / self.right_scale_y)), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        color[self.height], 2)
-            self.map_count += 1
+            if self.is_ramp_calibration:  # 飞坡标定模式
+                index = self.map_count % 4
+                self.ramp_map_points[index] = (x, y)
+                # 使用紫色标记飞坡标定点
+                cv2.circle(self.right_image, (int(x / self.right_scale_x), int(y / self.right_scale_y)),
+                      4, (255, 0, 255), -1)
+                cv2.putText(self.right_image, str(self.map_count % 4),
+                       (int(x / self.right_scale_x), int(y / self.right_scale_y)),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
+                self.map_count += 1
+            else:  # 原有标定模式
+                self.map_points[self.height][self.map_count % 4] = (x, y)
+                # 保持原有颜色
+                cv2.circle(self.right_image, (int(x / self.right_scale_x), int(y / self.right_scale_y)),
+                      4, color[self.height], -1)
+                cv2.putText(self.right_image, str(self.map_count % 4),
+                       (int(x / self.right_scale_x), int(y / self.right_scale_y)),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, color[self.height], 2)
+                self.map_count += 1
+
             self.update_images()
             self.append_text(f'地图真实点击坐标：({x}, {y})')
-
+        
     def button1_clicked(self):
         # 按钮1点击事件
         self.append_text('开始标定')
@@ -334,6 +373,15 @@ class MyUI(QWidget):
 
     def button4_clicked(self):
         # 按钮4点击事件
+        self.append_text('飞坡标定')
+        self.capturing = False
+        self.is_ramp_calibration  = True
+        self.image_count = 0
+        self.map_count = 0
+        print('飞坡标定开始')
+
+    def button5_clicked(self):
+        # 按钮5点击事件
         print(self.image_points)
         print(self.map_points)
         for i in range(0, 2):
@@ -347,6 +395,12 @@ class MyUI(QWidget):
         print('保存计算', self.save_path)
         time.sleep(1)
         sys.exit()
+        
+    def button6_clicked(self):
+        # 按钮6点击事件
+        self.append_text('退出标定')
+        self.close()
+        
 
     def convert_cvimage_to_pixmap(self, cvimage):
         height, width, channel = cvimage.shape
