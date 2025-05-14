@@ -6,7 +6,7 @@ global:
   map_size: [2800, 1500]  # 战场地图尺寸
 
 serial: # 串口
-  port: 'COM13'
+  port: '/dev/ttyUSB0'
   baudrate: 115200
   timeout: 1
 
@@ -30,12 +30,12 @@ paths:
     mask: 'images-2025/map_mask.jpg' # 加载落点判断掩码
     backup: 'images-2025/map.jpg'
   models:
-    car: 'models/car.pt'
-    armor: 'models/armor.pt'
+    car: 'models/car.engine'
+    armor: 'models/armor.engine'
 
 camera_params:
   exposure_time: 16000.0 # 曝光时间
-  gain: 17.9 # 增益值
+  gain: 16.0 # 增益值
 
 kalman:
   process_noise: 1e-5
