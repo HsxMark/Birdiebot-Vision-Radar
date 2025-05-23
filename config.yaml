@@ -7,7 +7,7 @@ global:
 
 serial: # 串口
   port: '/dev/ttyUSB0'
-  baudrate: 115200
+  baudrate: 921600
   timeout: 1
 
 filter:
