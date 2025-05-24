@@ -630,14 +630,14 @@ def ser_send():
                 # 未识别到英雄，进行盲区预测
                 else:
                     if all_filter_data.get('R1', False):
-                        send_map['R1'] = send_point_B('R1', all_filter_data)
+                        send_map['R1'] = send_point_R('R1', all_filter_data)
 
                 if guess_list.get('R2'):
                     send_map['R2'] = send_point_guess('R2', guess_time_limit)
                 # 未识别到工程，进行盲区预测
                 else:
                     if all_filter_data.get('R2', False):
-                        send_map['R2'] = send_point_B('R2', all_filter_data)
+                        send_map['R2'] = send_point_R('R2', all_filter_data)
 
                 # 步兵3号
                 if not guess_list.get('R3'):
