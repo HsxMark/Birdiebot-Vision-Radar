@@ -84,7 +84,7 @@ trtexec.exe --onnx=models/armor.onnx --saveEngine=models/armor.engine --fp16
 2. 运行calibration.py运行标定脚本
 3. 将相机视角调节合适后，点击“开始标定”
 4. 依次点击相机视图和地图视图 **地面** 对应对应的四组、八个点（白色）后，点击切换高度
-5. 依次点击相机视图和地图视图 **中央高地** 对应对应的四组、八个点（绿色）后，点击切换高度
+5. 依次点击相机视图和地图视图 **中央高地** 对应对应的四组、八个点（绿色）后
 6. 保存计算，结果会自动保存为.npy文件
 ![标定演示](images/calibration.JPG)
 
@@ -219,7 +219,7 @@ trtexec.exe --onnx=models/armor.onnx --saveEngine=models/armor.engine --fp16
 #### 注意事项
 1. 不仅可以tensorrt加速，理论上openvino也可以
 2. 可以修改多个机器人都进行盲区预测
-3. 遇到问题联系我，QQ：2460220279 2728615481 
+3. 遇到问题联系我，QQ：2460220279(现负责人) 2728615481 
 4. 如果对你有帮助的话帮忙点个star
 
 #### 已知问题及解决方法
