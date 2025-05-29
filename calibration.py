@@ -374,7 +374,7 @@ if __name__ == '__main__':
     state = config['global']['state']  # R:红方/B:蓝方
 
     if camera_mode == 'test':
-        camera_image = cv2.imread('images/test_image.jpg')
+        camera_image = cv2.imread(config['paths']['test_img'])
     elif camera_mode == 'hik':
         # 海康相机图像获取线程
         thread_camera = threading.Thread(target=hik_camera_get, daemon=True)
